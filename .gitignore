@@ -1,4 +1,2 @@
 .venv
 battleship_project/db.sqlite3
-battleship_project/battleship_project/__pycache__
-battleship_project/battleship/__pycache__
