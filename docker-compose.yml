@@ -1,10 +1,8 @@
 services:
-  web:
+  django-server:
+    container_name: django-server
     build:
-      context: ./battleship_project/
-      dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/code
+      context: ./server
+      target: builder
     ports:
-      - "8000:8000"
+      - 8000:8000
