@@ -4,20 +4,20 @@ const killSound = document.getElementById('kill-sound');
 
 // Воспроизведение звука попадания
 function playHitSound() {
-    hitSound.pause(); 
+    hitSound.pause();
     hitSound.currentTime = 0;
     hitSound.play();
 }
 
 // Воспроизведение звука промаха
 function playMissSound() {
-    missSound.pause(); 
+    missSound.pause();
     missSound.currentTime = 0;
     missSound.play();
 }
 
 function playKillSound() {
-    killSound.pause(); 
+    killSound.pause();
     killSound.currentTime = 0;
     killSound.play();
 }
@@ -69,7 +69,7 @@ function placeShipsRandomly() {
             let x = Math.floor(Math.random() * BOARD_SIZE);
             let y = Math.floor(Math.random() * BOARD_SIZE);
             let direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-            
+
             if (canPlaceShip(x, y, size, direction, board)) {
                 placeShip(x, y, size, direction, board);
                 ships.push({ x, y, size, direction, hits: 0 });
@@ -176,89 +176,134 @@ function surroundShip(ship, boardElement, board) {
 
 
 // Ход компьютера
-let lastHit = null; // Хранит последнее попадание
-let currentDirection = null; // Направление атаки (горизонтально или вертикально)
-const attackPattern = []; // Список клеток для атаки по стратегии
+// Ход компьютера
+let lastHit = null;  // Хранит последнее попадание
+let currentDirection = null;  // Направление атаки (горизонтальное или вертикальное)
+let nextTarget = null;  // Следующая цель для атаки
 
-// Измененная функция computerMove
 function computerMove() {
-    let availableCells = getCells(playerBoard).filter(cell => 
+    let availableCells = getCells(playerBoard).filter(cell =>
         !cell.classList.contains('hit') && !cell.classList.contains('miss')
     );
 
     let targetCell = null;
 
-    // Если есть последнее попадание, продолжаем атаковать в соседние клетки
-    if (lastHit) {
-        const [row, col] = lastHit;
-        const potentialTargets = [];
-
-        // Определяем возможные направления для атаки
-        const directions = [
-            { r: row - 1, c: col }, // вверх
-            { r: row + 1, c: col }, // вниз
-            { r: row, c: col - 1 }, // влево
-            { r: row, c: col + 1 }  // вправо
-        ];
-
-        // Добавляем доступные соседние клетки в potentialTargets
-        for (const { r, c } of directions) {
-            if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
-                const cell = playerBoard.children[r * BOARD_SIZE + c];
-                if (!cell.classList.contains('hit') && !cell.classList.contains('miss')) {
-                    potentialTargets.push({ r, c });
-                }
-            }
-        }
-
-        // Если есть доступные соседние клетки, выбираем одну из них
-        if (potentialTargets.length > 0) {
-            // Выбираем случайную клетку из доступных соседей
-            const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-            targetCell = playerBoard.children[target.r * BOARD_SIZE + target.c];
-        }
-    }
-
-    // Если нет доступной клетки, выбираем следующую по стратегии
-    if (!targetCell) {
-        targetCell = selectNextAttackCell(availableCells);
-    }
-
-    const index = Array.from(playerBoard.children).indexOf(targetCell);
-    const row = Math.floor(index / BOARD_SIZE);
-    const col = index % BOARD_SIZE;
-
-    if (targetCell.classList.contains('ship')) {
-        targetCell.classList.add('hit');
-        computerHits++;
-        playHitSound();
-        lastHit = [row, col]; // Сохраняем последнее попадание
-
-        // Логика проверки попадания
-        playerShips.ships.forEach(ship => {
-            if (isPartOfShip(ship, row, col)) {
-                ship.hits++;
-                if (isShipSunk(ship)) {
-                    surroundShip(ship, playerBoard, playerShips.board);
-                    totalPlayerShips--;
-                }
-            }
-        });
-        turnInfo.textContent = "Компьютер попал!";
+    // Если у компьютера остался 1 корабль, он атакует без промахов
+    if (totalComputerShips === 1) {
+        targetCell = findPlayerShipCell();  // Находим клетку с кораблем игрока
     } else {
-        targetCell.classList.add('miss');
-        playMissSound();
-        playerTurn = true;  // Передаем ход игроку
-        lastHit = null;  // Сбрасываем последнее попадание
+        // Если было попадание, пытаемся атаковать соседние клетки
+        if (lastHit) {
+            targetCell = selectAdjacentTarget(lastHit);
+        }
+
+        // Если нет соседних целей, выбираем случайную клетку
+        if (!targetCell && availableCells.length > 0) {
+            targetCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+        }
+    }
+
+    if (targetCell) {
+        const index = Array.from(playerBoard.children).indexOf(targetCell);
+        const row = Math.floor(index / BOARD_SIZE);
+        const col = index % BOARD_SIZE;
+
+        if (targetCell.classList.contains('ship')) {
+            targetCell.classList.add('hit');
+            computerHits++;
+            playHitSound();
+            lastHit = [row, col];  // Сохраняем последнее попадание
+            currentDirection = determineDirection(lastHit);  // Определяем направление атаки
+
+            // Проверяем, убит ли корабль
+            playerShips.ships.forEach(ship => {
+                if (isPartOfShip(ship, row, col)) {
+                    ship.hits++;
+                    if (isShipSunk(ship)) {
+                        surroundShip(ship, playerBoard, playerShips.board);
+                        totalPlayerShips--;
+                        lastHit = null;  // Сбрасываем последнее попадание
+                        currentDirection = null;  // Сбрасываем направление атаки
+                    }
+                }
+            });
+            turnInfo.textContent = "Компьютер попал!";
+        } else {
+            targetCell.classList.add('miss');
+            playMissSound();
+            playerTurn = true;  // Передаем ход игроку
+            turnInfo.textContent = "Ваш ход!";
+        }
     }
 
     checkGameOver();
 
-    // После проверки окончания игры обновляем флаг хода
+    // Если игра продолжается и ход компьютера ещё не завершён, вызываем следующий ход
     if (totalPlayerShips > 0 && totalComputerShips > 0 && !playerTurn) {
-        setTimeout(computerMove, 1000);  // Если игра продолжается, компьютер снова делает ход
+        setTimeout(computerMove, 1000);
     }
 }
+
+// Находит клетку с кораблем игрока для точного удара
+function findPlayerShipCell() {
+    const playerCells = getCells(playerBoard);
+    for (let i = 0; i < playerCells.length; i++) {
+        const row = Math.floor(i / BOARD_SIZE);
+        const col = i % BOARD_SIZE;
+        if (playerShips.board[row][col] === 'ship' &&
+            !playerCells[i].classList.contains('hit') &&
+            !playerCells[i].classList.contains('miss')) {
+            return playerCells[i];
+        }
+    }
+    return null;
+}
+
+// Выбор соседней клетки для атаки
+function selectAdjacentTarget([lastRow, lastCol]) {
+    const directions = [
+        { r: lastRow - 1, c: lastCol }, // вверх
+        { r: lastRow + 1, c: lastCol }, // вниз
+        { r: lastRow, c: lastCol - 1 }, // влево
+        { r: lastRow, c: lastCol + 1 }  // вправо
+    ];
+
+    for (const { r, c } of directions) {
+        if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            const cell = playerBoard.children[r * BOARD_SIZE + c];
+            if (!cell.classList.contains('hit') && !cell.classList.contains('miss')) {
+                return cell;  // Возвращаем первую доступную соседнюю клетку
+            }
+        }
+    }
+    return null;  // Если нет доступных соседних клеток
+}
+
+// Определяем направление атаки (горизонтальное или вертикальное)
+function determineDirection([row, col]) {
+    if (currentDirection) {
+        return currentDirection;  // Если направление уже выбрано, сохраняем его
+    }
+
+    const directions = [
+        { r: row - 1, c: col },  // вверх
+        { r: row + 1, c: col },  // вниз
+        { r: row, c: col - 1 },  // влево
+        { r: row, c: col + 1 }   // вправо
+    ];
+
+    for (const { r, c } of directions) {
+        if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+            const cell = playerBoard.children[r * BOARD_SIZE + c];
+            if (!cell.classList.contains('hit') && !cell.classList.contains('miss')) {
+                // Возвращаем направление (горизонтально или вертикально)
+                return r === row ? 'horizontal' : 'vertical';
+            }
+        }
+    }
+    return null;  // Если направление не определено
+}
+
 
 // Функция для выбора следующей клетки для атаки
 function selectNextAttackCell(availableCells) {
@@ -413,12 +458,12 @@ function playerMove(event) {
 function initGame() {
     createBoard(playerBoard);
     createBoard(computerBoard);
-    
+
     playerShips = placeShipsRandomly();
     computerShips = placeShipsRandomly();
-    
+
     displayPlayerShips();
-    
+
     getCells(computerBoard).forEach(cell => {
         cell.addEventListener('click', playerMove);
     });

@@ -2,7 +2,7 @@ services:
   django-server:
     container_name: django-server
     build:
-      context: ./server
+      context: ./battleship_project
       target: builder
     ports:
       - 8000:8000

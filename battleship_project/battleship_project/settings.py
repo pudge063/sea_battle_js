@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-d-g%*vse%9a4&0uh575oov5tea39*z1x-ck7%rcb4th_z!dqp3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['getvpn.space', 'localhost']
 
 
 # Application definition
