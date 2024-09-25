@@ -1,0 +1,70 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f3f4f6;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.game-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+}
+
+.board-container {
+    display: inline-block;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-template-rows: repeat(10, 40px);
+    gap: 2px;
+}
+
+.cell {
+    width: 40px;
+    height: 40px;
+    background-color: #87cefa;
+    border: 1px solid #555;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.cell.ship {
+    background-color: #2e8b57;
+}
+
+.cell.hit {
+    background-color: red;
+}
+
+.cell.miss {
+    background-color: lightgray;
+}
+
+button {
+    padding: 10px 20px;
+    margin-top: 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#turn-info,
+#remaining-ships {
+    margin-top: 20px;
+    font-size: 1.2em;
+}
